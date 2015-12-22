@@ -1,5 +1,6 @@
 package com.crazytech.swing.texteditor;
 
+import java.awt.Component;
 import java.awt.HeadlessException;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
@@ -17,13 +18,13 @@ import com.crazytech.io.IOUtil;
 
 public class DragDropSyntaxEditor extends SyntaxEditor{
 
-	public DragDropSyntaxEditor(String hint, Locale locale, String defPath) {
-		super(hint, locale, defPath);
+	public DragDropSyntaxEditor(Component parent, String hint, Locale locale, String defPath) {
+		super(parent, hint, locale, defPath);
 		getRtextArea().setDropTarget(new MyDropTarget(getRtextArea()));
 	}
 	
-	public DragDropSyntaxEditor(String hint, Locale locale) {
-		super(hint, locale);
+	public DragDropSyntaxEditor(Component parent, String hint, Locale locale) {
+		super(parent, hint, locale);
 		getRtextArea().setDropTarget(new MyDropTarget(getRtextArea()));
 	}
 	
@@ -52,6 +53,7 @@ public class DragDropSyntaxEditor extends SyntaxEditor{
                 	String content = IOUtil.readFile(file.getAbsolutePath());
                     ta.setText(content);
                     setCurrFilePath(file.getAbsolutePath());
+                    setLoadedContent(content);
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();

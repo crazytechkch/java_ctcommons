@@ -2,9 +2,12 @@ package com.crazytech.swing.texteditor;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
@@ -50,8 +53,11 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	private LangMan lang;
 	private Locale locale;
 	private UndoManager undoMan;
-	private String currFilePath,defaultPath,hint;
+	private String currFilePath,defaultPath,hint,loadedContent;
 	private JLabel lblStatus;
+	private Component parentComponent;
+	
+	private boolean contentLoaded;
 	
 	/**
 	 * Create the panel.
@@ -59,15 +65,17 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	 * @param locale
 	 * @param default Path
 	 */
-	public SyntaxEditor(String hint, Locale locale, String defPath) {
+	public SyntaxEditor(Component parent, String hint, Locale locale, String defPath) {
 		defaultPath = defPath;
+		this.parentComponent = parent;
 		this.locale = locale;
 		this.hint = hint;
 		init();
 	}
 	
-	public SyntaxEditor(String hint, Locale locale){
+	public SyntaxEditor(Component parent, String hint, Locale locale){
 		defaultPath = new File("").getPath();
+		this.parentComponent = parent;
 		this.locale = locale;
 		this.hint = hint;
 		init();
@@ -75,6 +83,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	
 	private void init(){
 		setLayout(new GridLayout(1, 0, 0, 0));
+		loadedContent = "";
 		lang = new LangMan(locale);
 		
 		
@@ -84,6 +93,34 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		rtextArea.setTabSize(4);
 		rtextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVA);
 		rtextArea.setCodeFoldingEnabled(true);
+		rtextArea.addFocusListener(new FocusListener() {
+			
+			@Override
+			public void focusLost(FocusEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void focusGained(FocusEvent e) {
+				try {
+					String fileContent = IOUtil.readFile(currFilePath);
+					if (isContentLoaded()&&isFileChanged()&&!fileContent.equals(loadedContent)) {
+						switch (optionDialog(parentComponent,lang.getString("content_changed")+"\n"+currFilePath, "Warning")) {
+						case 0:
+							rtextArea.setText(fileContent);
+							break;
+						case 1:
+							loadedContent = getText();
+						default:
+							break;
+						}
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
 		PromptSupport.init(hint, Color.GRAY, null, rtextArea);
 		
 		RTextScrollPane rscrollPane = new RTextScrollPane(rtextArea);
@@ -238,6 +275,13 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		
 	}
 	
+	private boolean isFileChanged() throws IOException {
+		String fileContent = IOUtil.readFile(currFilePath);
+		if(fileContent==null) return false;
+		if(!getText().equals(fileContent)) return true;
+		return false;
+	}
+	
 	public String getText(){
 		return rtextArea.getText();
 	}
@@ -264,10 +308,11 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	}
 	
 	private void saveFile() throws IOException{
-		switch (optionDialog(lang.getString("overwrite_existing")+"\n"+currFilePath, lang.getString("save"))) {
+		switch (optionDialog(parentComponent,lang.getString("overwrite_existing")+"\n"+currFilePath, lang.getString("save"))) {
 		case 0:
 			IOUtil.overwriteFile(getText(), currFilePath);
 			setStatus(lang.getString("saved"), null, 5000);
+			setLoadedContent(getText());
 			break;
 
 		default:
@@ -286,6 +331,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 			IOUtil.overwriteFile(getText(), chooser.getSelectedFile().getCanonicalPath());
 			currFilePath = chooser.getSelectedFile().getCanonicalPath();
 			setStatus(lang.getString("saved"), null, 5000);
+			setLoadedContent(getText());
 		}
 	}
 	
@@ -297,11 +343,12 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		int response = chooser.showOpenDialog(null);
 		if(response==chooser.APPROVE_OPTION){
 			setText(IOUtil.readFile(chooser.getSelectedFile().getCanonicalPath()));
+			setLoadedContent(getText());
 		}
 	}
 	
-	private int optionDialog(String msg, String title) {
-		return JOptionPane.showConfirmDialog(null, msg, title, JOptionPane.OK_CANCEL_OPTION);
+	private int optionDialog(Component component, String msg, String title) {
+		return JOptionPane.showConfirmDialog(component, msg, title, JOptionPane.OK_CANCEL_OPTION);
 	}
 
 	@Override
@@ -322,6 +369,8 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		mntmPaste.setText(lang.getString("paste"));
 	}
 	
+	
+	
 	 public String getCurrFilePath() {
 		return currFilePath;
 	}
@@ -336,5 +385,18 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 
 	public void setRtextArea(RSyntaxTextArea rtextArea) {
 		this.rtextArea = rtextArea;
+	}
+	
+	public void setLoadedContent(String loadedContent){
+		this.loadedContent = loadedContent;
+		setContentLoaded(true);
+	}
+
+	public boolean isContentLoaded() {
+		return contentLoaded;
+	}
+
+	public void setContentLoaded(Boolean contentLoaded) {
+		this.contentLoaded = contentLoaded;
 	}
 }
