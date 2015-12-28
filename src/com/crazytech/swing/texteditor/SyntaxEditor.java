@@ -34,6 +34,9 @@ import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.undo.UndoManager;
 
+import org.fife.ui.autocomplete.AutoCompletion;
+import org.fife.ui.autocomplete.CompletionProvider;
+import org.fife.ui.autocomplete.DefaultCompletionProvider;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
@@ -122,6 +125,9 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 			}
 		});
 		PromptSupport.init(hint, Color.GRAY, null, rtextArea);
+		
+		AutoCompletion autocomplete = new AutoCompletion(rtextAreaComplProvider());
+		autocomplete.install(rtextArea);
 		
 		RTextScrollPane rscrollPane = new RTextScrollPane(rtextArea);
 		add(rscrollPane);
@@ -273,6 +279,11 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		lblStatus = new JLabel("");
 		panel.add(lblStatus, BorderLayout.EAST);
 		
+	}
+	
+	private CompletionProvider rtextAreaComplProvider() {
+		DefaultCompletionProvider provider = new DefaultCompletionProvider();
+		return provider;
 	}
 	
 	private boolean isFileChanged() throws IOException {
