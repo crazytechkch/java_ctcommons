@@ -39,6 +39,8 @@ import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jdesktop.xswingx.PromptSupport;
 
@@ -124,6 +126,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 				}
 			}
 		});
+		setThemeDark(rtextArea);
 		PromptSupport.init(hint, Color.GRAY, null, rtextArea);
 		
 		AutoCompletion autocomplete = new AutoCompletion(rtextAreaComplProvider());
@@ -278,6 +281,17 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		
 		lblStatus = new JLabel("");
 		panel.add(lblStatus, BorderLayout.EAST);
+		
+	}
+	
+	private void setThemeDark(RSyntaxTextArea rsta) {
+		try {
+			Theme theme = Theme.load(getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/default.xml"));
+			theme.apply(rsta);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 	
