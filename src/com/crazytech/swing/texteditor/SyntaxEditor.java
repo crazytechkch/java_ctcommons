@@ -12,7 +12,9 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -70,6 +72,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	 * @param locale
 	 * @param default Path
 	 */
+	
 	public SyntaxEditor(Component parent, String hint, Locale locale, String defPath) {
 		defaultPath = defPath;
 		this.parentComponent = parent;
@@ -126,7 +129,6 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 				}
 			}
 		});
-		setThemeDark(rtextArea);
 		PromptSupport.init(hint, Color.GRAY, null, rtextArea);
 		
 		AutoCompletion autocomplete = new AutoCompletion(rtextAreaComplProvider());
@@ -284,9 +286,20 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		
 	}
 	
-	private void setThemeDark(RSyntaxTextArea rsta) {
+	public static Map<String,String> getThemeMap(){
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("Default-Alt", "/org/fife/ui/rsyntaxtextarea/themes/default-alt.xml");
+		map.put("Default", "/org/fife/ui/rsyntaxtextarea/themes/default.xml");
+		map.put("Dark", "/org/fife/ui/rsyntaxtextarea/themes/dark.xml");
+		map.put("Eclipse", "/org/fife/ui/rsyntaxtextarea/themes/eclipse.xml");
+		map.put("Idea", "/org/fife/ui/rsyntaxtextarea/themes/idea.xml");
+		map.put("VS", "/org/fife/ui/rsyntaxtextarea/themes/vs.xml");
+		return map;
+	}
+	
+	public void setTheme(RSyntaxTextArea rsta, String themeName) {
 		try {
-			Theme theme = Theme.load(getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/default.xml"));
+			Theme theme = Theme.load(getClass().getResourceAsStream(getThemeMap().get(themeName)));
 			theme.apply(rsta);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
