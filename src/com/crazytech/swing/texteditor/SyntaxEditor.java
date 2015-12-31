@@ -36,6 +36,11 @@ import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.undo.UndoManager;
 
+import org.fife.rsta.ac.html.HtmlCompletionProvider;
+import org.fife.rsta.ac.java.JavaCompletionProvider;
+import org.fife.rsta.ac.js.JsDocCompletionProvider;
+import org.fife.rsta.ac.php.PhpCompletionProvider;
+import org.fife.rsta.ac.xml.XmlCompletionProvider;
 import org.fife.ui.autocomplete.AutoCompletion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
@@ -131,8 +136,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		});
 		PromptSupport.init(hint, Color.GRAY, null, rtextArea);
 		
-		AutoCompletion autocomplete = new AutoCompletion(rtextAreaComplProvider());
-		autocomplete.install(rtextArea);
+		setAutocompletion(RstaAC.AC_DEF);
 		
 		RTextScrollPane rscrollPane = new RTextScrollPane(rtextArea);
 		add(rscrollPane);
@@ -308,9 +312,18 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		
 	}
 	
-	private CompletionProvider rtextAreaComplProvider() {
-		DefaultCompletionProvider provider = new DefaultCompletionProvider();
-		return provider;
+	public void setAutocompletion(int type) {
+		AutoCompletion ac = new AutoCompletion(new DefaultCompletionProvider());
+		switch (type) {
+
+		case RstaAC.AC_JAVA: ac = new AutoCompletion(new JavaCompletionProvider());break;
+		case RstaAC.AC_XML: ac = new AutoCompletion(new XmlCompletionProvider());break;
+		case RstaAC.AC_HTML: ac = new AutoCompletion(new HtmlCompletionProvider());break;
+		case RstaAC.AC_JS: ac = new AutoCompletion(new JsDocCompletionProvider());break;
+		case RstaAC.AC_PHP: ac = new AutoCompletion(new PhpCompletionProvider());break;
+		default:break;
+		}
+		ac.install(rtextArea);
 	}
 	
 	private boolean isFileChanged() throws IOException {
@@ -436,5 +449,14 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 
 	public void setContentLoaded(Boolean contentLoaded) {
 		this.contentLoaded = contentLoaded;
+	}
+	
+	public class RstaAC {
+		public static final int AC_DEF = 0;
+		public static final int AC_JAVA = 1;
+		public static final int AC_XML = 2;
+		public static final int AC_HTML = 3;
+		public static final int AC_JS = 4;
+		public static final int AC_PHP = 5;
 	}
 }
