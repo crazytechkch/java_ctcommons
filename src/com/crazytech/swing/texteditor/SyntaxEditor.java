@@ -60,7 +60,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	protected JTextArea textArea;
 	private RSyntaxTextArea rtextArea;
 	private JMenu mnFile,mnEdit;
-	private JMenuItem mntmNew, mntmOpen, mntmSave, mntmSaveAs,
+	private JMenuItem mntmNew, mntmOpen, mntmSave, mntmSaveAs,mntmRefresh,
 		mntmUndo, mntmRedo, mntmSelectAll, mntmCut, mntmCopy, mntmPaste;
 	private LangMan lang;
 	private Locale locale;
@@ -106,7 +106,8 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		rtextArea.setTabSize(4);
 		rtextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVA);
 		rtextArea.setCodeFoldingEnabled(true);
-		rtextArea.addFocusListener(new FocusListener() {
+		
+		/*rtextArea.addFocusListener(new FocusListener() {
 			
 			@Override
 			public void focusLost(FocusEvent e) {
@@ -116,24 +117,10 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 			
 			@Override
 			public void focusGained(FocusEvent e) {
-				try {
-					String fileContent = IOUtil.readFile(currFilePath);
-					if (isContentLoaded()&&isFileChanged()&&!fileContent.equals(loadedContent)) {
-						switch (optionDialog(parentComponent,lang.getString("content_changed")+"\n"+currFilePath, "Warning")) {
-						case 0:
-							rtextArea.setText(fileContent);
-							break;
-						case 1:
-							loadedContent = getText();
-						default:
-							break;
-						}
-					}
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+				checkAndConfirmFileChange();
 			}
 		});
+		*/
 		PromptSupport.init(hint, Color.GRAY, null, rtextArea);
 		
 		setAutocompletion(RstaAC.AC_DEF);
@@ -173,6 +160,31 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);
+		
+		mntmRefresh = new JMenuItem(lang.getString("refresh"));
+		mntmRefresh.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
+		mntmRefresh.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					String fileContent = IOUtil.readFile(currFilePath);
+					if (isContentLoaded()&&isFileChanged()&&!fileContent.equals(loadedContent)) {
+						switch (optionDialog(parentComponent,lang.getString("content_changed")+"\n"+currFilePath, "Warning")) {
+						case 0:
+							rtextArea.setText(fileContent);
+							break;
+						case 1:
+							loadedContent = getText();
+						default:
+							break;
+						}
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+		mnFile.add(mntmRefresh);
+		mnFile.addSeparator();
 		
 		mntmOpen = new JMenuItem(lang.getString("open"));
 		mntmOpen.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/folder_open_icon&16.png")));
@@ -409,6 +421,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		mnFile.setText(lang.getString("file"));
 		mnEdit.setText(lang.getString("edit"));
 		mntmOpen.setText(lang.getString("open"));
+		mntmRefresh.setText(lang.getString("refresh"));
 		mntmSave.setText(lang.getString("save"));
 		mntmSaveAs.setText(lang.getString("saveas"));
 		mntmNew.setText(lang.getString("new"));
@@ -420,7 +433,24 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		mntmPaste.setText(lang.getString("paste"));
 	}
 	
-	
+	private void checkAndConfirmFileChange(){
+		try {
+			String fileContent = IOUtil.readFile(currFilePath);
+			if (isContentLoaded()&&isFileChanged()&&!fileContent.equals(loadedContent)) {
+				switch (optionDialog(parentComponent,lang.getString("content_changed")+"\n"+currFilePath, "Warning")) {
+				case 0:
+					rtextArea.setText(fileContent);
+					break;
+				case 1:
+					loadedContent = getText();
+				default:
+					break;
+				}
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
 	
 	 public String getCurrFilePath() {
 		return currFilePath;
