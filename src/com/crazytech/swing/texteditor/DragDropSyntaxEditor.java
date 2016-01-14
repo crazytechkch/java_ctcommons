@@ -10,6 +10,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Locale;
 
+import javax.swing.JFrame;
 import javax.swing.JTextArea;
 
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -18,13 +19,13 @@ import com.crazytech.io.IOUtil;
 
 public class DragDropSyntaxEditor extends SyntaxEditor{
 
-	public DragDropSyntaxEditor(Component parent, String hint, Locale locale, String defPath) {
-		super(parent, hint, locale, defPath);
+	public DragDropSyntaxEditor(JFrame frame, Component parent, String hint, Locale locale, String defPath) {
+		super(frame, parent, hint, locale, defPath);
 		getRtextArea().setDropTarget(new MyDropTarget(getRtextArea()));
 	}
 	
-	public DragDropSyntaxEditor(Component parent, String hint, Locale locale) {
-		super(parent, hint, locale);
+	public DragDropSyntaxEditor(JFrame frame, Component parent, String hint, Locale locale) {
+		super(frame,parent, hint, locale);
 		getRtextArea().setDropTarget(new MyDropTarget(getRtextArea()));
 	}
 	

@@ -16,8 +16,11 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -32,6 +35,7 @@ import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.event.UndoableEditListener;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.undo.UndoManager;
@@ -41,6 +45,12 @@ import org.fife.rsta.ac.java.JavaCompletionProvider;
 import org.fife.rsta.ac.js.JsDocCompletionProvider;
 import org.fife.rsta.ac.php.PhpCompletionProvider;
 import org.fife.rsta.ac.xml.XmlCompletionProvider;
+import org.fife.rsta.ui.GoToDialog;
+import org.fife.rsta.ui.SizeGripIcon;
+import org.fife.rsta.ui.search.FindDialog;
+import org.fife.rsta.ui.search.ReplaceDialog;
+import org.fife.rsta.ui.search.SearchEvent;
+import org.fife.rsta.ui.search.SearchListener;
 import org.fife.ui.autocomplete.AutoCompletion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
@@ -49,6 +59,9 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
+import org.fife.ui.rtextarea.SearchContext;
+import org.fife.ui.rtextarea.SearchEngine;
+import org.fife.ui.rtextarea.SearchResult;
 import org.jdesktop.xswingx.PromptSupport;
 
 import res.locale.LangMan;
@@ -68,6 +81,10 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	private String currFilePath,defaultPath,hint,loadedContent;
 	private JLabel lblStatus;
 	private Component parentComponent;
+	private FindDialog findDialog;
+	private ReplaceDialog replaceDialog;
+	private JFrame frame;
+	private JMenuBar menuBar;
 	
 	private boolean contentLoaded;
 	
@@ -78,16 +95,18 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	 * @param default Path
 	 */
 	
-	public SyntaxEditor(Component parent, String hint, Locale locale, String defPath) {
+	public SyntaxEditor(JFrame frame,Component parent, String hint, Locale locale, String defPath) {
 		defaultPath = defPath;
+		this.frame = frame;
 		this.parentComponent = parent;
 		this.locale = locale;
 		this.hint = hint;
 		init();
 	}
 	
-	public SyntaxEditor(Component parent, String hint, Locale locale){
+	public SyntaxEditor(JFrame frame, Component parent, String hint, Locale locale){
 		defaultPath = new File("").getPath();
+		this.frame = frame;
 		this.parentComponent = parent;
 		this.locale = locale;
 		this.hint = hint;
@@ -142,28 +161,28 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		rscrollPane.setColumnHeaderView(panel);
 		panel.setLayout(new BorderLayout(0, 0));
 		
-		JMenuBar menuBar = new JMenuBar();
-		panel.add(menuBar);
+		initSearchDialogs(frame);
 		
-		mnFile = new JMenu(lang.getString("file"));
-		mnFile.setMnemonic('F');
-		menuBar.add(mnFile);
 		
-		mntmNew = new JMenuItem(lang.getString("new"));
-		mntmNew.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_MASK));
-		mntmNew.addActionListener(new ActionListener() {
+		lblStatus = new JLabel("");
+		panel.add(lblStatus, BorderLayout.EAST);
+	}
+	
+	public ActionListener mnActNew() {
+		return new ActionListener() {
+			
+			@Override
 			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
 				rtextArea.setText("");
 			}
-		});
-		mnFile.add(mntmNew);
-		
-		JSeparator separator = new JSeparator();
-		mnFile.add(separator);
-		
-		mntmRefresh = new JMenuItem(lang.getString("refresh"));
-		mntmRefresh.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
-		mntmRefresh.addActionListener(new ActionListener() {
+		};
+	}
+	
+	public ActionListener mnActRefresh(){
+		return new ActionListener() {
+			
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
 					String fileContent = IOUtil.readFile(currFilePath);
@@ -182,15 +201,14 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 					e1.printStackTrace();
 				}
 			}
-		});
-		mnFile.add(mntmRefresh);
-		mnFile.addSeparator();
-		
-		mntmOpen = new JMenuItem(lang.getString("open"));
-		mntmOpen.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/folder_open_icon&16.png")));
-		mntmOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK));
-		mntmOpen.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent evt) {
+		};
+	}
+	
+	public ActionListener mnActOpen(){
+		return new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent event) {
 				try {
 					openFile();
 				} catch (IOException e) {
@@ -198,13 +216,13 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 					e.printStackTrace();
 				}
 			}
-		});
-		mnFile.add(mntmOpen);
-		
-		mntmSave = new JMenuItem(lang.getString("save"));
-		mntmSave.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/save_icon&16.png")));
-		mntmSave.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK));
-		mntmSave.addActionListener(new ActionListener() {
+		};
+	}
+	
+	public ActionListener mnActSave(){
+		return new ActionListener() {
+			
+			@Override
 			public void actionPerformed(ActionEvent evt) {
 				try {
 					if(currFilePath!=null)saveFile();
@@ -214,13 +232,13 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 					e.printStackTrace();
 				}
 			}
-		});
-		mnFile.add(mntmSave);
-		
-		mntmSaveAs = new JMenuItem(lang.getString("saveas"));
-		mntmSaveAs.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/save_icon&16.png")));
-		mntmSaveAs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK | InputEvent.ALT_MASK));
-		mntmSaveAs.addActionListener(new ActionListener() {
+		};
+	}
+	
+	public ActionListener mnActSaveAs(){
+		return new ActionListener() {
+			
+			@Override
 			public void actionPerformed(ActionEvent evt) {
 				try {
 					saveAsFile();
@@ -229,77 +247,114 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 					e.printStackTrace();
 				}
 			}
-		});
-		mnFile.add(mntmSaveAs);
-		
-		
-		mnEdit = new JMenu(lang.getString("edit"));
-		mnEdit.setMnemonic('E');
-		mnEdit.setIcon(null);
-		menuBar.add(mnEdit);
-		
-		mntmUndo = new JMenuItem(lang.getString("undo"));
-		mntmUndo.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/undo_icon&16.png")));
-		mntmUndo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_MASK));
-		mntmUndo.addActionListener(new ActionListener() {
+		};
+	}
+	
+	public ActionListener mnActUndo(){
+		return new ActionListener() {
 			
 			@Override
-			public void actionPerformed(ActionEvent e) {
+			public void actionPerformed(ActionEvent evt) {
 				if (undoMan.canUndo()) undoMan.undo();
 			}
-		});
-		mnEdit.add(mntmUndo);
-		
-		mntmRedo = new JMenuItem(lang.getString("redo"));
-		mntmRedo.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/redo_icon&16.png")));
-		mntmRedo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_MASK));
-		mntmRedo.addActionListener(new ActionListener() {
+		};
+	}
+	
+	public ActionListener mnActRedo(){
+		return new ActionListener() {
 			
 			@Override
-			public void actionPerformed(ActionEvent e) {
+			public void actionPerformed(ActionEvent evt) {
 				if (undoMan.canRedo()) undoMan.redo();
 			}
-		});
-		mnEdit.add(mntmRedo);
-		
-		JSeparator separator_1 = new JSeparator();
-		mnEdit.add(separator_1);
-		
-		mntmSelectAll = new JMenuItem(lang.getString("selectall"));
-		mntmSelectAll.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_MASK));
-		mntmSelectAll.addActionListener(new ActionListener() {
+		};
+	}
+	
+	public ActionListener mnActSelectAll(){
+		return new ActionListener() {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				rtextArea.selectAll();
 			}
-		});
-		mnEdit.add(mntmSelectAll);
+		};
+	}
+	
+	public Action mnActCut(){
+		return new DefaultEditorKit.CutAction();
+	}
+	
+	public Action mnActCopy(){
+		return new DefaultEditorKit.CopyAction();
+	}
+	
+	public Action mnActPaste(){
+		return new DefaultEditorKit.PasteAction();
+	}
+	
+	
+	private void initSearchDialogs(JFrame frame){
+		findDialog = new FindDialog(frame, searchListener());
+		replaceDialog = new ReplaceDialog(frame, searchListener());
 		
-		JSeparator separator_2 = new JSeparator();
-		mnEdit.add(separator_2);
-		
-		mntmCut = new JMenuItem(new DefaultEditorKit.CutAction());
-		mntmCut.setText(lang.getString("cut"));
-		mntmCut.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/clipboard_cut_icon&16.png")));
-		mntmCut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_MASK));
-		mnEdit.add(mntmCut);
-		
-		mntmCopy = new JMenuItem(new DefaultEditorKit.CopyAction());
-		mntmCopy.setText(lang.getString("copy"));
-		mntmCopy.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/clipboard_copy_icon&16.png")));
-		mntmCopy.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK));
-		mnEdit.add(mntmCopy);
-		
-		mntmPaste = new JMenuItem(new DefaultEditorKit.PasteAction());
-		mntmPaste.setText(lang.getString("paste"));
-		mntmPaste.setIcon(new ImageIcon(SyntaxEditor.class.getResource("/res/toolbaricons/black/png/clipboard_past_icon&16.png")));
-		mntmPaste.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_MASK));
-		mnEdit.add(mntmPaste);
-		
-		lblStatus = new JLabel("");
-		panel.add(lblStatus, BorderLayout.EAST);
-		
+		SearchContext srCtx = findDialog.getSearchContext();
+		replaceDialog.setSearchContext(srCtx);
+	}
+	
+	private SearchListener searchListener(){
+		return new SearchListener() {
+			
+			@Override
+			public void searchEvent(SearchEvent e) {
+				SearchEvent.Type type = e.getType();
+				SearchContext ctx = e.getSearchContext();
+				SearchResult result = null;
+				
+				switch (type) {
+				case MARK_ALL:
+					result = SearchEngine.markAll(rtextArea, ctx);
+					break;
+				case FIND:
+					result = SearchEngine.find(rtextArea, ctx);
+					if (result.wasFound()) UIManager.getLookAndFeel().provideErrorFeedback(rtextArea);
+					break;
+				case REPLACE:
+					result = SearchEngine.replace(rtextArea, ctx);
+					if (result.wasFound()) UIManager.getLookAndFeel().provideErrorFeedback(rtextArea);
+					break;
+				case REPLACE_ALL:
+					result = SearchEngine.replaceAll(rtextArea, ctx);
+					JOptionPane.showMessageDialog(getRootPane(), result.getCount()+" occurences replaced.");
+					break;
+				default:
+					break;
+				}
+				
+				String text = null;
+				if (result.wasFound()) {
+					text = "Text found; occurrences marked: " + result.getMarkedCount();
+				}
+				else if (type==SearchEvent.Type.MARK_ALL) {
+					if (result.getMarkedCount()>0) {
+						text = "Occurrences marked: " + result.getMarkedCount();
+					}
+					else {
+						text = "";
+					}
+				}
+				else {
+					text = "Text not found";
+				}
+				//statusBar.setLabel(text);
+
+			}
+			
+			@Override
+			public String getSelectedText() {
+				// TODO Auto-generated method stub
+				return rtextArea.getSelectedText();
+			}
+		};
 	}
 	
 	public static Map<String,String> getThemeMap(){
@@ -370,7 +425,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
         t.start();
 	}
 	
-	private void saveFile() throws IOException{
+	public void saveFile() throws IOException{
 		switch (optionDialog(parentComponent,lang.getString("overwrite_existing")+"\n"+currFilePath, lang.getString("save"))) {
 		case 0:
 			IOUtil.overwriteFile(getText(), currFilePath);
@@ -383,7 +438,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		}
 	}
 	
-	private void saveAsFile() throws IOException{
+	public void saveAsFile() throws IOException{
 		UIManager.put("FileChooser.saveDialogTitleText",lang.getString("saveas"));
 		if (!(new File(defaultPath).exists())) new File(defaultPath).mkdirs();
 		JFileChooser chooser = new JFileChooser(defaultPath);
@@ -398,7 +453,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		}
 	}
 	
-	private void openFile() throws IOException {
+	public void openFile() throws IOException {
 		if (!(new File(defaultPath).exists())) new File(defaultPath).mkdirs();
 		JFileChooser chooser = new JFileChooser(defaultPath);
 		if (currFilePath !=null) chooser.setCurrentDirectory(new File(currFilePath));
@@ -418,6 +473,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 	public void onLocaleChange(Locale locale) {
 		this.locale = locale;
 		lang = new LangMan(locale);
+		/*
 		mnFile.setText(lang.getString("file"));
 		mnEdit.setText(lang.getString("edit"));
 		mntmOpen.setText(lang.getString("open"));
@@ -431,6 +487,7 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		mntmCut.setText(lang.getString("cut"));
 		mntmCopy.setText(lang.getString("copy"));
 		mntmPaste.setText(lang.getString("paste"));
+		*/
 	}
 	
 	private void checkAndConfirmFileChange(){
@@ -488,5 +545,102 @@ public class SyntaxEditor extends JPanel implements LocaleChangeListener{
 		public static final int AC_HTML = 3;
 		public static final int AC_JS = 4;
 		public static final int AC_PHP = 5;
+	}
+	
+	public ShowFindDialogAction showFindDialogAction(){
+		return new ShowFindDialogAction();
+	}
+	
+	private class ShowFindDialogAction extends AbstractAction {
+		
+		public ShowFindDialogAction() {
+			super(lang.getString("find")+"...");
+			int c = getToolkit().getMenuShortcutKeyMask();
+			putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F, c));
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			if (replaceDialog.isVisible()) {
+				replaceDialog.setVisible(false);
+			}
+			findDialog.setVisible(true);
+		}
+
+	}
+	
+	public ShowReplaceDialogAction showReplaceDialogAction(){
+		return new ShowReplaceDialogAction();
+	}
+
+
+	private class ShowReplaceDialogAction extends AbstractAction {
+		
+		public ShowReplaceDialogAction() {
+			super(lang.getString("replace")+"...");
+			int c = getToolkit().getMenuShortcutKeyMask();
+			putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_H, c));
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			if (findDialog.isVisible()) {
+				findDialog.setVisible(false);
+			}
+			replaceDialog.setVisible(true);
+		}
+
+	}
+	
+	public GoToLineAction goToLineAction(){
+		return new GoToLineAction(frame);
+	}
+	
+	private class GoToLineAction extends AbstractAction {
+		private JFrame frame;
+		public GoToLineAction(JFrame frame) {
+			super("Go To Line...");
+			this.frame = frame;
+			int c = getToolkit().getMenuShortcutKeyMask();
+			putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_L, c));
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			if (findDialog.isVisible()) {
+				findDialog.setVisible(false);
+			}
+			if (replaceDialog.isVisible()) {
+				replaceDialog.setVisible(false);
+			}
+			GoToDialog dialog = new GoToDialog(frame);
+			dialog.setMaxLineNumberAllowed(rtextArea.getLineCount());
+			dialog.setVisible(true);
+			int line = dialog.getLineNumber();
+			if (line>0) {
+				try {
+					rtextArea.setCaretPosition(rtextArea.getLineStartOffset(line-1));
+				} catch (BadLocationException ble) { // Never happens
+					UIManager.getLookAndFeel().provideErrorFeedback(rtextArea);
+					ble.printStackTrace();
+				}
+			}
+		}
+
+	}
+
+	
+	private static class StatusBar extends JPanel {
+
+		private JLabel label;
+
+		public StatusBar() {
+			label = new JLabel("Ready");
+			setLayout(new BorderLayout());
+			add(label, BorderLayout.LINE_START);
+			add(new JLabel(new SizeGripIcon()), BorderLayout.LINE_END);
+		}
+
+		public void setLabel(String label) {
+			this.label.setText(label);
+		}
+
 	}
 }
