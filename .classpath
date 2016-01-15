@@ -14,5 +14,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/RSyntaxTextArea"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/AutoComplete"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/RSTALanguageSupport"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/RSTAUI"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
