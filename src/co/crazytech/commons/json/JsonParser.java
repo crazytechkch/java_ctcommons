@@ -1,8 +1,7 @@
 package co.crazytech.commons.json;
 
 import java.io.BufferedReader;
-import org.json.JSONException;
-import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -12,11 +11,23 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 public class JsonParser {
+	private String url;
 	
-	public JsonParser() {
+	public JsonParser(String url) {
 		super();
+		this.url = url;
 		// TODO Auto-generated constructor stub
+	}
+	
+	public JSONObject parse() throws UnknownHostException, MalformedURLException, ParseException, IOException{
+		Object obj = new JSONParser().parse(getJsonFromUrl(url));
+		JSONObject jsonObj = (JSONObject) obj;
+		return jsonObj;
 	}
 
 	public String getJsonFromUrl(String url) throws UnknownHostException, MalformedURLException, IOException{

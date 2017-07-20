@@ -15,5 +15,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/AutoComplete"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/RSTALanguageSupport"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/RSTAUI"/>
+	<classpathentry kind="lib" path="D:/development/Java/libs/json-simple-1.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
